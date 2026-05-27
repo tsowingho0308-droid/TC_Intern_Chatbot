@@ -158,9 +158,30 @@
             animation: rainbowSpin 2s linear infinite, orbThinkBob 1s ease-in-out infinite;
             box-shadow: 0 0 50px rgba(245,158,11,0.45), 0 0 90px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.1);
         }
+        
+        /* 🌟 AI 說話狀態：跟隨 --agent-volume 變數爆發能量 */
         .orb-stage.speaking .orb {
-            animation: rainbowSpin 3.5s linear infinite, orbSpeakPulse 0.45s ease-in-out infinite;
-            box-shadow: 0 0 60px rgba(59,130,246,0.55), 0 0 110px rgba(59,130,246,0.25), inset 0 1px 0 rgba(255,255,255,0.14);
+            animation: rainbowSpin 3.5s linear infinite; /* 保持彩虹旋轉 */
+
+            /* 基礎大小 1，隨 AI 音量放大，最大可放得比你講話時更大 (0.4) 展現存在感 */
+            transform: scale(calc(1 + var(--agent-volume, 0) * 0.4));
+            
+            /* 光暈改為科技感的藍色，並隨著音量瞬間擴張 */
+            box-shadow: 
+                0 0 calc(60px + var(--agent-volume, 0) * 60px) rgba(59,130,246,0.6), 
+                0 0 calc(110px + var(--agent-volume, 0) * 100px) rgba(59,130,246,0.3), 
+                inset 0 1px 0 rgba(255,255,255,0.14);
+                
+            /* 極短的過渡時間，讓它能跟上急促的講話語速 */
+            transition: transform 0.05s ease-out, box-shadow 0.05s ease-out;
+        }
+
+        /* 🌟 讓 Orb 內部的史萊姆能量條也跟著 AI 說話的節奏跳動 */
+        .orb-stage.speaking .orb-bar { 
+            background: rgba(255,255,255,0.9); 
+            transform: scaleY(calc(0.5 + var(--agent-volume, 0) * 2.5));
+            transition: transform 0.05s ease-out;
+            animation: none; /* 關閉原本寫死的動畫 */
         }
         @keyframes rainbowSpin {
             0% { background: conic-gradient(from 0deg,
@@ -386,6 +407,7 @@
         let ttsChunks = [];
         let playbackCtx = null;
         let muted = false;
+        let ttsAnimFrame = null;
 
         function setStatus(state) {
             // Preserve muted class if present
@@ -564,6 +586,8 @@
             if (!playbackCtx || playbackCtx.state === 'closed') {
                 playbackCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
             }
+            
+            // 1. 合併音訊數據
             const totalLen = chunks.reduce((s, c) => s + c.length, 0);
             const combined = new Int16Array(totalLen);
             let offset = 0;
@@ -574,10 +598,56 @@
             const float32 = int16ToFloat32(combined);
             const buf = playbackCtx.createBuffer(1, float32.length, SAMPLE_RATE);
             buf.getChannelData(0).set(float32);
+
             const source = playbackCtx.createBufferSource();
             source.buffer = buf;
-            source.connect(playbackCtx.destination);
+
+            // 🌟 2. 核心魔法：建立 AnalyserNode 來監聽播放出去的聲音
+            const analyser = playbackCtx.createAnalyser();
+            analyser.fftSize = 256; // 設定頻率解析度
+            
+            // 將音源 -> 監聽器 -> 喇叭 連線起來
+            source.connect(analyser);
+            analyser.connect(playbackCtx.destination);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            // 🌟 3. 建立一個不斷執行的動畫迴圈，即時讀取音量
+            function updateAgentVolume() {
+                // 抓取當下的音頻數據
+                analyser.getByteFrequencyData(dataArray);
+                
+                // 計算平均音量 (數值介於 0 到 255)
+                let sum = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    sum += dataArray[i];
+                }
+                let avg = sum / bufferLength;
+
+                // 將音量轉換為 0 ~ 1 的浮點數，並稍微放大 (1.5) 讓視覺回饋更強烈
+                let volumeLevel = Math.min(1, (avg / 255) * 1.5);
+
+                // 將數值注入到 Orb 的 CSS 變數中
+                orb.style.setProperty('--agent-volume', volumeLevel);
+
+                // 只要 AI 還在講話，就持續在每一幀更新音量
+                if (isAgentSpeaking) {
+                    ttsAnimFrame = requestAnimationFrame(updateAgentVolume);
+                } else {
+                    orb.style.setProperty('--agent-volume', 0);
+                }
+            }
+
+            // 當這段音訊播放完畢時，清理變數與動畫
+            source.onended = () => {
+                cancelAnimationFrame(ttsAnimFrame);
+                orb.style.setProperty('--agent-volume', 0);
+            };
+
+            // 4. 開始播放，並同步啟動監聽迴圈！
             source.start();
+            updateAgentVolume(); 
         }
 
         // ── Controls ──
