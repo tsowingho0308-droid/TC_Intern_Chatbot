@@ -370,7 +370,7 @@
             color: #ffffff;
             word-wrap: break-word;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -441,8 +441,6 @@
         const statusLabel = document.getElementById('statusLabel');
         const connectBtn = document.getElementById('connectBtn');
         const resetBtn = document.getElementById('resetBtn');
-        const userTranscript = document.getElementById('userTranscript');
-        const agentTranscript = document.getElementById('agentTranscript');
         const logBox = document.getElementById('logBox');
 
         // ── State ──
@@ -510,7 +508,6 @@
                 if (typeof event.data === 'string') {
                     const msg = JSON.parse(event.data);
                     if (msg.type === 'transcript') {
-                        userTranscript.textContent = msg.text;
                         addLog('You', msg.text);
                     } else if (msg.type === 'response') {
                         addLog('Agent', msg.text);
