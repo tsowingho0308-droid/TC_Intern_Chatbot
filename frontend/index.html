@@ -158,7 +158,7 @@
             animation: rainbowSpin 2s linear infinite, orbThinkBob 1s ease-in-out infinite;
             box-shadow: 0 0 50px rgba(245,158,11,0.45), 0 0 90px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.1);
         }
-        
+
         /* 🌟 AI 說話狀態：跟隨 --agent-volume 變數爆發能量 */
         .orb-stage.speaking .orb {
             animation: rainbowSpin 3.5s linear infinite; /* 保持彩虹旋轉 */
@@ -470,8 +470,6 @@
                             playFullAudio(ttsChunks);
                             ttsChunks = [];
                         }
-                        isAgentSpeaking = false;
-                        setStatus(listening ? 'listening' : 'idle');
                     } else if (msg.type === 'reset_done') {
                         logBox.innerHTML = '<div style="color:#555;text-align:center;padding:12px;">Conversation reset.</div>';
                         userTranscript.textContent = '';
@@ -639,11 +637,15 @@
                 }
             }
 
-            // 當這段音訊播放完畢時，清理變數與動畫
-            source.onended = () => {
-                cancelAnimationFrame(ttsAnimFrame);
-                orb.style.setProperty('--agent-volume', 0);
-            };
+        // 當這段音訊播放完畢時，清理變數與動畫
+        source.onended = () => {
+            cancelAnimationFrame(ttsAnimFrame);
+            orb.style.setProperty('--agent-volume', 0);
+            
+            // 🌟 加在這裡：等喇叭真的把聲音播完了，才宣告 AI 講完話並切換視覺狀態
+            isAgentSpeaking = false;
+            setStatus(listening ? 'listening' : 'idle');
+        };
 
             // 4. 開始播放，並同步啟動監聽迴圈！
             source.start();
