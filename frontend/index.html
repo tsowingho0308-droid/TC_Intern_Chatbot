@@ -83,7 +83,7 @@
 
         /* Main orb — Fluid Dye Effect */
         .orb {
-            width: 90px; /* 稍微放大一點，讓變形更明顯 */
+            width: 90px;
             height: 90px;
             position: relative;
             z-index: 2;
@@ -92,31 +92,39 @@
             align-items: center;
             justify-content: center;
             
-            /* 🎨 染料漸層：你可以自由修改這裡的顏色組合！ */
+            /* 染料漸層背景 */
             background: linear-gradient(45deg, #00d4ff, #7f00ff, #ff007f, #ffeb3b, #00ff7f);
-            background-size: 300% 300%; /* 放大背景以製造流動感 */
+            background-size: 300% 300%;
             
-            /* 🌟 套用剛剛寫的流體與變形動畫 */
-            animation: morph 5s ease-in-out infinite, fluidColors 8s ease-in-out infinite;
+            /* 🌟 改進 4：增加 40% 透明度 (不透明度設為 0.6) */
+            opacity: 0.6;
             
+            /* 🌟 改進 3：套用 Keyframes 並將速度加快一倍 (5s -> 2.5s, 8s -> 4s) */
+            animation: morph 2.5s ease-in-out infinite, fluidColors 4s ease-in-out infinite;
+            
+            /* 基礎光暈 */
             box-shadow: 0 0 40px rgba(127,0,255,0.4), inset 0 0 20px rgba(255,255,255,0.4);
-            transition: filter 0.4s, transform 0.1s ease-out, box-shadow 0.1s ease-out;
+            
+            transition: filter 0.4s, transform 0.1s ease-out, box-shadow 0.1s ease-out, opacity 0.5s;
         }
 
         /* Hover: scale up */
         .orb:hover {
             transform: scale(1.08);
         }
+
         /* Active / hold: press down */
-        .orb:active {
-            transform: scale(0.94);
-            transition: transform 0.08s ease-in;
+        .orb:active { 
+            transform: scale(0.94); 
+            transition: transform 0.08s ease-in; 
         }
+
         /* Muted state: desaturated */
         .orb.muted {
-            filter: grayscale(0.55) brightness(0.65);
+            filter: grayscale(0.55) brightness(0.65); opacity: 0.4;
             box-shadow: 0 0 20px rgba(120,120,150,0.2), 0 0 40px rgba(120,120,150,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
         }
+
         .orb.muted:hover {
             transform: scale(1.08);
             filter: grayscale(0.35) brightness(0.75);
@@ -127,19 +135,14 @@
 
         /* State animation overrides on top of rainbow */
         .orb-stage.idle .orb {
-            animation: rainbowSpin 8s linear infinite;
+            animation: morph 4s ease-in-out infinite, fluidColors 6s ease-in-out infinite;
         }
         
         /* 🌟 聆聽狀態：保留流體變形，並加入音量縮放 */
         .orb-stage.listening .orb {
-            /* 這裡一定要保留 morph 和 fluidColors！ */
-            animation: morph 3s ease-in-out infinite, fluidColors 4s ease-in-out infinite;
-            
+            animation: morph 1.5s ease-in-out infinite, fluidColors 2.5s ease-in-out infinite;
             transform: scale(calc(1 + var(--mic-volume, 0) * 0.35));
-            
-            box-shadow: 
-                0 0 calc(55px + var(--mic-volume, 0) * 50px) rgba(99,102,241,0.6), 
-                inset 0 0 20px rgba(255,255,255,0.5);
+            box-shadow: 0 0 calc(55px + var(--mic-volume, 0) * 50px) rgba(99,102,241,0.6), inset 0 0 20px rgba(255,255,255,0.5);
         }
 
         /* 🌟 我們也可以讓球體裡面的能量條（Gooey Bar）跟著聲音起伏 */
@@ -151,14 +154,14 @@
             animation: none; /* 關閉原本死板的跳動動畫 */
         }
         .orb-stage.processing .orb {
-            animation: rainbowSpin 2s linear infinite, orbThinkBob 1s ease-in-out infinite;
-            box-shadow: 0 0 50px rgba(245,158,11,0.45), 0 0 90px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.1);
+            animation: morph 1.2s ease-in-out infinite, fluidColors 2s ease-in-out infinite;
+            box-shadow: 0 0 50px rgba(245,158,11,0.6), inset 0 0 20px rgba(255,255,255,0.5);
         }
 
         /* 🌟 AI 說話狀態：加快流體變形速度，並跟隨 AI 音量震動 */
         .orb-stage.speaking .orb {
             /* 說話時，讓波浪變形和染料流動都加速，展現情緒 */
-            animation: morph 2s ease-in-out infinite, fluidColors 3s ease-in-out infinite;
+            animation: morph 1s ease-in-out infinite, fluidColors 1.5s ease-in-out infinite;
 
             transform: scale(calc(1 + var(--agent-volume, 0) * 0.45));
             
@@ -177,9 +180,9 @@
 
         /* 🌟 1. 流體變形動畫 (宛如水滴般的柔軟邊緣) */
         @keyframes morph {
-            0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-            50%  { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
-            100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+            0%   { border-radius: 72% 28% 16% 84% / 72% 16% 84% 28%; }
+            50%  { border-radius: 16% 72% 84% 28% / 40% 72% 16% 72%; }
+            100% { border-radius: 72% 28% 16% 84% / 72% 16% 84% 28%; }
         }
 
         /* 🌟 2. 染料流動動畫 (背景漸層緩慢游移) */
