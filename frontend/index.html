@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Agent — Local</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; background: #0f0f14; color: #e0e0e0;
+        }
+        .container { width: 420px; padding: 24px; }
+        h1 { text-align: center; font-size: 1.3rem; margin-bottom: 24px; color: #fff; letter-spacing: -0.02em; }
+
+        .indicator-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+        .dot {
+            width: 14px; height: 14px; border-radius: 50%; background: #555;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .dot.idle { background: #555; }
+        .dot.listening { background: #4ade80; box-shadow: 0 0 12px #4ade80; animation: pulse 1.2s infinite; }
+        .dot.speaking { background: #60a5fa; box-shadow: 0 0 12px #60a5fa; animation: pulse 0.6s infinite; }
+        .dot.processing { background: #facc15; box-shadow: 0 0 12px #facc15; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+        }
+        .status-label { font-size: 0.85rem; color: #999; }
+
+        .btn-row { display: flex; gap: 8px; margin-bottom: 20px; }
+        button {
+            flex: 1; padding: 12px 0; font-size: 0.95rem; font-weight: 600;
+            border: none; border-radius: 10px; cursor: pointer; transition: background 0.15s;
+        }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-connect { background: #4f46e5; color: #fff; }
+        .btn-connect:hover:not(:disabled) { background: #4338ca; }
+        .btn-connect.connected { background: #dc2626; }
+        .btn-connect.connected:hover:not(:disabled) { background: #b91c1c; }
+        .btn-mute { background: #374151; color: #d1d5db; flex: 0.5; }
+        .btn-mute:hover:not(:disabled) { background: #4b5563; }
+        .btn-mute.muted { background: #92400e; color: #fbbf24; }
+        .btn-reset { background: #374151; color: #d1d5db; flex: 0.5; }
+        .btn-reset:hover:not(:disabled) { background: #4b5563; }
+
+        .card {
+            background: #1a1a24; border-radius: 12px; padding: 16px;
+            margin-bottom: 12px; border: 1px solid #27272a;
+        }
+        .card h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #666; margin-bottom: 8px; }
+        .transcript-box { min-height: 48px; font-size: 1.05rem; color: #f1f5f9; word-wrap: break-word; }
+        .transcript-box.interim { color: #888; font-style: italic; }
+
+        .log-box { max-height: 200px; overflow-y: auto; font-size: 0.8rem; }
+        .log-entry { padding: 4px 0; border-bottom: 1px solid #222; display: flex; gap: 8px; }
+        .log-entry:last-child { border-bottom: none; }
+        .log-role { color: #818cf8; font-weight: 600; min-width: 42px; flex-shrink: 0; }
+        .log-text { color: #d1d5db; }
+
+        .footer { text-align: center; font-size: 0.7rem; color: #555; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Agent</h1>
+
+        <div class="indicator-row">
+            <div class="dot" id="dot"></div>
+            <span class="status-label" id="statusLabel">Ready</span>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn-connect" id="connectBtn" onclick="toggleConnection()">Connect</button>
+            <button class="btn-mute" id="muteBtn" onclick="toggleMic()" disabled>Mute</button>
+            <button class="btn-reset" id="resetBtn" onclick="resetChat()" disabled>Reset</button>
+        </div>
+
+        <div class="card">
+            <h3>You said</h3>
+            <div class="transcript-box" id="userTranscript"></div>
+        </div>
+
+        <div class="card">
+            <h3>Agent says</h3>
+            <div class="transcript-box" id="agentTranscript"></div>
+        </div>
+
+        <div class="card">
+            <h3>Conversation</h3>
+            <div class="log-box" id="logBox">
+                <div style="color:#555;text-align:center;padding:12px;">Connect and start talking...</div>
+            </div>
+        </div>
+
+        <div class="footer">16kHz mono PCM &middot; WebSocket direct</div>
+    </div>
+
+    <script>
+        // ── DOM refs ──
+        const dot = document.getElementById('dot');
+        const statusLabel = document.getElementById('statusLabel');
+        const connectBtn = document.getElementById('connectBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const userTranscript = document.getElementById('userTranscript');
+        const agentTranscript = document.getElementById('agentTranscript');
+        const logBox = document.getElementById('logBox');
+
+        // ── State ──
+        let ws = null;
+        let audioCtx = null;
+        let workletNode = null;
+        let micStream = null;
+        let connected = false;
+        let listening = false;
+        const SAMPLE_RATE = 16000;
+        const SILENCE_THRESHOLD = 0.012;
+        const SILENCE_DURATION_MS = 400;
+        let silenceStart = null;
+        let isAgentSpeaking = false;
+        let ttsChunks = [];
+        let playbackCtx = null;
+        let muted = false;
+
+        function setStatus(state) {
+            dot.className = 'dot ' + state;
+            const labels = {
+                idle: ['Ready', 'Ready'],
+                listening: ['Listening', 'Listening...'],
+                processing: ['Thinking', 'Processing...'],
+                speaking: ['Speaking', 'Agent speaking...'],
+            };
+            statusLabel.textContent = labels[state] ? labels[state][0] : state;
+        }
+
+        function addLog(role, text) {
+            if (logBox.querySelector('div[style]')) logBox.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-role">${role}</span><span class="log-text">${text}</span>`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // ── WebSocket ──
+        function connectWS() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${location.host}/ws`);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                connected = true;
+                connectBtn.textContent = 'Disconnect';
+                connectBtn.classList.add('connected');
+                muteBtn.disabled = false;
+                resetBtn.disabled = false;
+                setStatus('idle');
+                startMic();
+            };
+
+            ws.onmessage = async (event) => {
+                if (typeof event.data === 'string') {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'transcript') {
+                        userTranscript.textContent = msg.text;
+                        addLog('You', msg.text);
+                    } else if (msg.type === 'response') {
+                        agentTranscript.textContent = msg.text;
+                        addLog('Agent', msg.text);
+                    } else if (msg.type === 'tts_start') {
+                        isAgentSpeaking = true;
+                        ttsChunks = [];
+                        setStatus('speaking');
+                    } else if (msg.type === 'tts_done') {
+                        if (ttsChunks.length > 0) {
+                            playFullAudio(ttsChunks);
+                            ttsChunks = [];
+                        }
+                        isAgentSpeaking = false;
+                        setStatus(listening ? 'listening' : 'idle');
+                    } else if (msg.type === 'reset_done') {
+                        logBox.innerHTML = '<div style="color:#555;text-align:center;padding:12px;">Conversation reset.</div>';
+                        userTranscript.textContent = '';
+                        agentTranscript.textContent = '';
+                    }
+                } else if (event.data instanceof ArrayBuffer) {
+                    ttsChunks.push(new Int16Array(event.data));
+                }
+            };
+
+            ws.onclose = () => {
+                connected = false;
+                stopMic();
+                connectBtn.textContent = 'Connect';
+                connectBtn.classList.remove('connected');
+                muteBtn.disabled = true;
+                muteBtn.textContent = 'Mute';
+                muteBtn.classList.remove('muted');
+                muted = false;
+                resetBtn.disabled = true;
+                setStatus('idle');
+                ws = null;
+            };
+
+            ws.onerror = () => { /* onclose will fire next */ };
+        }
+
+        // ── Audio capture ──
+        async function startMic() {
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: SAMPLE_RATE,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                    }
+                });
+                audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+
+                // ScriptProcessorNode for PCM access (deprecated but widely supported)
+                const source = audioCtx.createMediaStreamSource(micStream);
+                workletNode = audioCtx.createScriptProcessor(2048, 1, 1);
+
+                workletNode.onaudioprocess = (event) => {
+                    if (!connected || !ws || ws.readyState !== WebSocket.OPEN) return;
+                    const input = event.inputBuffer.getChannelData(0);
+                    const pcm = float32ToInt16(input);
+
+                    // Send raw audio
+                    ws.send(pcm.buffer);
+
+                    // VAD
+                    const rms = Math.sqrt(input.reduce((sum, v) => sum + v * v, 0) / input.length);
+                    const now = Date.now();
+
+                    if (rms > SILENCE_THRESHOLD) {
+                        if (!listening) {
+                            listening = true;
+                            setStatus('listening');
+                            if (isAgentSpeaking) {
+                                ws.send(JSON.stringify({ type: 'interrupt' }));
+                                isAgentSpeaking = false;
+                            }
+                        }
+                        silenceStart = null;
+                    } else if (listening) {
+                        if (!silenceStart) silenceStart = now;
+                        if (now - silenceStart > SILENCE_DURATION_MS) {
+                            listening = false;
+                            setStatus('processing');
+                            ws.send(JSON.stringify({ type: 'end' }));
+                        }
+                    }
+                };
+
+                source.connect(workletNode);
+                workletNode.connect(audioCtx.destination); // silent pass-through
+                setStatus('idle');
+            } catch (err) {
+                console.error('Mic error:', err);
+                statusLabel.textContent = 'Mic denied or unavailable';
+            }
+        }
+
+        function stopMic() {
+            listening = false;
+            if (workletNode) {
+                workletNode.disconnect();
+                workletNode = null;
+            }
+            if (audioCtx) {
+                audioCtx.close();
+                audioCtx = null;
+            }
+            if (playbackCtx) {
+                playbackCtx.close();
+                playbackCtx = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(t => t.stop());
+                micStream = null;
+            }
+        }
+
+        function float32ToInt16(float32) {
+            const int16 = new Int16Array(float32.length);
+            for (let i = 0; i < float32.length; i++) {
+                const s = Math.max(-1, Math.min(1, float32[i]));
+                int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            return int16;
+        }
+
+        function int16ToFloat32(int16) {
+            const float32 = new Float32Array(int16.length);
+            for (let i = 0; i < int16.length; i++) {
+                float32[i] = int16[i] / (int16[i] < 0 ? 0x8000 : 0x7FFF);
+            }
+            return float32;
+        }
+
+        // ── Audio playback ──
+        function playFullAudio(chunks) {
+            if (!playbackCtx || playbackCtx.state === 'closed') {
+                playbackCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+            }
+            // Concatenate all chunks into one Int16Array
+            const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+            const combined = new Int16Array(totalLen);
+            let offset = 0;
+            for (const chunk of chunks) {
+                combined.set(chunk, offset);
+                offset += chunk.length;
+            }
+            const float32 = int16ToFloat32(combined);
+            const buf = playbackCtx.createBuffer(1, float32.length, SAMPLE_RATE);
+            buf.getChannelData(0).set(float32);
+            const source = playbackCtx.createBufferSource();
+            source.buffer = buf;
+            source.connect(playbackCtx.destination);
+            source.start();
+        }
+
+        // ── Controls ──
+        function toggleMic() {
+            muted = !muted;
+            if (micStream) {
+                micStream.getAudioTracks().forEach(t => t.enabled = !muted);
+            }
+            muteBtn.textContent = muted ? 'Unmute' : 'Mute';
+            muteBtn.classList.toggle('muted', muted);
+        }
+
+        function toggleConnection() {
+            if (connected) {
+                if (ws) ws.close();
+            } else {
+                connectWS();
+            }
+        }
+
+        function resetChat() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'reset' }));
+            }
+        }
+    </script>
+</body>
+</html>
