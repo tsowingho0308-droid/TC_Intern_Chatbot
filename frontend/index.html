@@ -93,17 +93,17 @@
             justify-content: center;
             
             /* 染料漸層背景 */
-            background: linear-gradient(45deg, #00d4ff, #7f00ff, #ff007f, #ffeb3b, #00ff7f);
+            background: linear-gradient(45deg, #ff00d9, #ff0000, #ff007f, #ff86fb, #ab4ff6);
             background-size: 300% 300%;
             
             /* 🌟 改進 4：增加 40% 透明度 (不透明度設為 0.6) */
-            opacity: 0.6;
+            opacity: 0.7;
             
             /* 🌟 改進 3：套用 Keyframes 並將速度加快一倍 (5s -> 2.5s, 8s -> 4s) */
             animation: morph 2.5s ease-in-out infinite, fluidColors 4s ease-in-out infinite;
             
             /* 基礎光暈 */
-            box-shadow: 0 0 40px rgba(127,0,255,0.4), inset 0 0 20px rgba(255,255,255,0.4);
+            box-shadow: 0 0 40px rgba(175, 25, 220, 0.4), inset 0 0 20px rgba(255,255,255,0.4);
             
             transition: filter 0.4s, transform 0.1s ease-out, box-shadow 0.1s ease-out, opacity 0.5s;
         }
@@ -180,9 +180,11 @@
 
         /* 🌟 1. 流體變形動畫 (宛如水滴般的柔軟邊緣) */
         @keyframes morph {
-            0%   { border-radius: 72% 28% 16% 84% / 72% 16% 84% 28%; }
-            50%  { border-radius: 16% 72% 84% 28% / 40% 72% 16% 72%; }
-            100% { border-radius: 72% 28% 16% 84% / 72% 16% 84% 28%; }
+            0%   { border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%; }
+            25%  { border-radius: 60% 40% 30% 70% / 40% 60% 40% 60%; }
+            50%  { border-radius: 30% 70% 70% 30% / 30% 40% 60% 70%; }
+            75%  { border-radius: 50% 50% 40% 60% / 70% 60% 40% 30%; }
+            100% { border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%; }
         }
 
         /* 🌟 2. 染料流動動畫 (背景漸層緩慢游移) */
