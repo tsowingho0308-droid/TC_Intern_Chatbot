@@ -127,9 +127,32 @@
         .orb-stage.idle .orb {
             animation: rainbowSpin 8s linear infinite;
         }
+        
+                /* 🌟 聆聽狀態：讓球體大小與發光程度直接跟隨音量變數！ */
         .orb-stage.listening .orb {
-            animation: rainbowSpin 3s linear infinite, orbListenPulse 0.7s ease-in-out infinite;
-            box-shadow: 0 0 55px rgba(99,102,241,0.5), 0 0 100px rgba(99,102,241,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
+            /* 保留彩虹旋轉，移除死板的 pulse 動畫 */
+            animation: rainbowSpin 3s linear infinite;
+            
+            /* 核心魔法：基礎大小 1，加上音量帶來的額外放大（最大可放大到 1.3 倍） */
+            transform: scale(calc(1 + var(--mic-volume, 0) * 0.3));
+            
+            /* 核心魔法：讓光暈也跟著音量爆發 */
+            box-shadow: 
+                0 0 calc(55px + var(--mic-volume, 0) * 50px) rgba(99,102,241,0.5), 
+                0 0 calc(100px + var(--mic-volume, 0) * 80px) rgba(99,102,241,0.2), 
+                inset 0 1px 0 rgba(255,255,255,0.12);
+                
+            /* 加上一點彈性過渡，讓音波跳動不會太銳利刺眼 */
+            transition: transform 0.05s ease-out, box-shadow 0.05s ease-out;
+        }
+
+        /* 🌟 我們也可以讓球體裡面的能量條（Gooey Bar）跟著聲音起伏 */
+        .orb-stage.listening .orb-bar { 
+            background: rgba(255,255,255,0.8); 
+            /* 讓條狀物高度受音量控制，但保留一點基礎高度 */
+            transform: scaleY(calc(0.5 + var(--mic-volume, 0) * 2));
+            transition: transform 0.05s ease-out;
+            animation: none; /* 關閉原本死板的跳動動畫 */
         }
         .orb-stage.processing .orb {
             animation: rainbowSpin 2s linear infinite, orbThinkBob 1s ease-in-out infinite;
@@ -479,7 +502,10 @@
                     // VAD
                     const rms = Math.sqrt(input.reduce((sum, v) => sum + v * v, 0) / input.length);
                     const now = Date.now();
-
+                    
+                    let volumeLevel = Math.min(1, rms * 15);
+                    orb.style.setProperty('--mic-volume', volumeLevel);
+                    
                     if (rms > SILENCE_THRESHOLD) {
                         if (!listening) {
                             listening = true;
