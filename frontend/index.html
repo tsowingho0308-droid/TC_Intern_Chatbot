@@ -81,26 +81,28 @@
         .orb-stage.processing .orb-glow { opacity: 0.25; background: rgba(245,158,11,0.6); }
         .orb-stage.speaking .orb-glow { opacity: 0.35; background: rgba(59,130,246,0.7); }
 
-        /* Main orb — rainbow gradient */
+        /* Main orb — Fluid Dye Effect */
         .orb {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
+            width: 90px; /* 稍微放大一點，讓變形更明顯 */
+            height: 90px;
             position: relative;
             z-index: 2;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: conic-gradient(from 0deg,
-                #a78bfa, #818cf8, #6366f1, #3b82f6, #06b6d4, #22d3ee,
-                #34d399, #10b981, #84cc16, #a3e635, #facc15, #f59e0b,
-                #f97316, #ef4444, #f43f5e, #ec4899, #d946ef, #a855f7,
-                #a78bfa
-            );
-            box-shadow: 0 0 40px rgba(139,92,246,0.3), 0 0 80px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
-            transition: filter 0.4s, transform 0.2s ease-out;
+            
+            /* 🎨 染料漸層：你可以自由修改這裡的顏色組合！ */
+            background: linear-gradient(45deg, #00d4ff, #7f00ff, #ff007f, #ffeb3b, #00ff7f);
+            background-size: 300% 300%; /* 放大背景以製造流動感 */
+            
+            /* 🌟 套用剛剛寫的流體與變形動畫 */
+            animation: morph 5s ease-in-out infinite, fluidColors 8s ease-in-out infinite;
+            
+            box-shadow: 0 0 40px rgba(127,0,255,0.4), inset 0 0 20px rgba(255,255,255,0.4);
+            transition: filter 0.4s, transform 0.1s ease-out, box-shadow 0.1s ease-out;
         }
+
         /* Hover: scale up */
         .orb:hover {
             transform: scale(1.08);
@@ -128,22 +130,16 @@
             animation: rainbowSpin 8s linear infinite;
         }
         
-                /* 🌟 聆聽狀態：讓球體大小與發光程度直接跟隨音量變數！ */
+        /* 🌟 聆聽狀態：保留流體變形，並加入音量縮放 */
         .orb-stage.listening .orb {
-            /* 保留彩虹旋轉，移除死板的 pulse 動畫 */
-            animation: rainbowSpin 3s linear infinite;
+            /* 這裡一定要保留 morph 和 fluidColors！ */
+            animation: morph 3s ease-in-out infinite, fluidColors 4s ease-in-out infinite;
             
-            /* 核心魔法：基礎大小 1，加上音量帶來的額外放大（最大可放大到 1.3 倍） */
-            transform: scale(calc(1 + var(--mic-volume, 0) * 0.3));
+            transform: scale(calc(1 + var(--mic-volume, 0) * 0.35));
             
-            /* 核心魔法：讓光暈也跟著音量爆發 */
             box-shadow: 
-                0 0 calc(55px + var(--mic-volume, 0) * 50px) rgba(99,102,241,0.5), 
-                0 0 calc(100px + var(--mic-volume, 0) * 80px) rgba(99,102,241,0.2), 
-                inset 0 1px 0 rgba(255,255,255,0.12);
-                
-            /* 加上一點彈性過渡，讓音波跳動不會太銳利刺眼 */
-            transition: transform 0.05s ease-out, box-shadow 0.05s ease-out;
+                0 0 calc(55px + var(--mic-volume, 0) * 50px) rgba(99,102,241,0.6), 
+                inset 0 0 20px rgba(255,255,255,0.5);
         }
 
         /* 🌟 我們也可以讓球體裡面的能量條（Gooey Bar）跟著聲音起伏 */
@@ -159,21 +155,16 @@
             box-shadow: 0 0 50px rgba(245,158,11,0.45), 0 0 90px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.1);
         }
 
-        /* 🌟 AI 說話狀態：跟隨 --agent-volume 變數爆發能量 */
+        /* 🌟 AI 說話狀態：加快流體變形速度，並跟隨 AI 音量震動 */
         .orb-stage.speaking .orb {
-            animation: rainbowSpin 3.5s linear infinite; /* 保持彩虹旋轉 */
+            /* 說話時，讓波浪變形和染料流動都加速，展現情緒 */
+            animation: morph 2s ease-in-out infinite, fluidColors 3s ease-in-out infinite;
 
-            /* 基礎大小 1，隨 AI 音量放大，最大可放得比你講話時更大 (0.4) 展現存在感 */
-            transform: scale(calc(1 + var(--agent-volume, 0) * 0.4));
+            transform: scale(calc(1 + var(--agent-volume, 0) * 0.45));
             
-            /* 光暈改為科技感的藍色，並隨著音量瞬間擴張 */
             box-shadow: 
-                0 0 calc(60px + var(--agent-volume, 0) * 60px) rgba(59,130,246,0.6), 
-                0 0 calc(110px + var(--agent-volume, 0) * 100px) rgba(59,130,246,0.3), 
-                inset 0 1px 0 rgba(255,255,255,0.14);
-                
-            /* 極短的過渡時間，讓它能跟上急促的講話語速 */
-            transition: transform 0.05s ease-out, box-shadow 0.05s ease-out;
+                0 0 calc(60px + var(--agent-volume, 0) * 80px) rgba(59,130,246,0.7), 
+                inset 0 0 30px rgba(255,255,255,0.6);
         }
 
         /* 🌟 讓 Orb 內部的史萊姆能量條也跟著 AI 說話的節奏跳動 */
@@ -183,18 +174,21 @@
             transition: transform 0.05s ease-out;
             animation: none; /* 關閉原本寫死的動畫 */
         }
-        @keyframes rainbowSpin {
-            0% { background: conic-gradient(from 0deg,
-                #a78bfa, #818cf8, #6366f1, #3b82f6, #06b6d4, #22d3ee,
-                #34d399, #10b981, #84cc16, #a3e635, #facc15, #f59e0b,
-                #f97316, #ef4444, #f43f5e, #ec4899, #d946ef, #a855f7,
-                #a78bfa); }
-            100% { background: conic-gradient(from 360deg,
-                #a78bfa, #818cf8, #6366f1, #3b82f6, #06b6d4, #22d3ee,
-                #34d399, #10b981, #84cc16, #a3e635, #facc15, #f59e0b,
-                #f97316, #ef4444, #f43f5e, #ec4899, #d946ef, #a855f7,
-                #a78bfa); }
+
+        /* 🌟 1. 流體變形動畫 (宛如水滴般的柔軟邊緣) */
+        @keyframes morph {
+            0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+            50%  { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+            100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
         }
+
+        /* 🌟 2. 染料流動動畫 (背景漸層緩慢游移) */
+        @keyframes fluidColors {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         @keyframes orbListenPulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.06); }
