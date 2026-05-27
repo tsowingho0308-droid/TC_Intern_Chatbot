@@ -298,19 +298,83 @@
 
         /* ═══════════════════════════ Cards (original layout) ═══════════════════════════ */
         .card {
-            background: #1a1a24; border-radius: 12px; padding: 16px;
-            margin-bottom: 12px; border: 1px solid #27272a;
+            background: rgba(30, 20, 40, 0.5); /* 討喜的深紫羅蘭色半透明玻璃背景 */
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px); /* 毛玻璃特效 */
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
-        .card h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #666; margin-bottom: 8px; }
+        .card h3 { 
+            font-size: 0.8rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+            color: #d8b4fe; /* 柔和的淡紫色標題 */
+            margin-bottom: 16px; 
+            text-align: center;
+        }
         .transcript-box { min-height: 48px; font-size: 1.05rem; color: #f1f5f9; word-wrap: break-word; }
         .transcript-box.interim { color: #888; font-style: italic; }
 
-        .log-box { max-height: 200px; overflow-y: auto; font-size: 0.8rem; }
-        .log-entry { padding: 4px 0; border-bottom: 1px solid #222; display: flex; gap: 8px; }
-        .log-entry:last-child { border-bottom: none; }
-        .log-role { color: #818cf8; font-weight: 600; min-width: 42px; flex-shrink: 0; }
-        .log-text { color: #d1d5db; }
+        .log-box { 
+            height: 300px; 
+            overflow-y: auto; 
+            font-size: 0.95rem; 
+            display: flex;
+            flex-direction: column;
+            gap: 16px; /* 對話之間的間距 */
+            padding-right: 8px;
+        }
 
+        .log-box::-webkit-scrollbar { width: 6px; }
+        .log-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+        .log-entry { 
+            display: flex; 
+            flex-direction: column; 
+            max-width: 85%; 
+            animation: fadeIn 0.3s ease-out; /* 訊息出現時的滑入動畫 */
+        }
+        /* 用戶的訊息靠右 */
+        .log-entry.user { align-self: flex-end; align-items: flex-end; }
+        /* AI 的訊息靠左 */
+        .log-entry.agent { align-self: flex-start; align-items: flex-start; }
+
+        .log-entry:last-child { border-bottom: none; }
+        .log-role { 
+            font-size: 0.7rem; 
+            color: #a1a1aa; 
+            margin-bottom: 6px; 
+            padding: 0 4px; 
+        }
+
+        /* 🌟 使用者氣泡：使用討喜的紅紫漸層 (呼應上面的 Orb 色調) */
+        .log-entry.user .log-text { 
+            background: linear-gradient(135deg, #ff007f, #d90429);
+            border-bottom-right-radius: 4px; /* 右下角變尖，營造對話感 */
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.2);
+        }
+
+        /* 🌟 AI 氣泡：使用優雅的深色半透明框 */
+        .log-entry.agent .log-text { 
+            background: rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255,255,255,0.1);
+            border-bottom-left-radius: 4px; /* 左下角變尖 */
+        }
+
+        .log-text { 
+            padding: 12px 16px; 
+            border-radius: 18px; 
+            line-height: 1.4; 
+            color: #ffffff;
+            word-wrap: break-word;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .footer { text-align: center; font-size: 0.7rem; color: #555; margin-top: 16px; }
     </style>
 </head>
@@ -361,19 +425,9 @@
 
         <!-- ── Conversation cards ── -->
         <div class="card">
-            <h3>You said</h3>
-            <div class="transcript-box" id="userTranscript"></div>
-        </div>
-
-        <div class="card">
-            <h3>Agent says</h3>
-            <div class="transcript-box" id="agentTranscript"></div>
-        </div>
-
-        <div class="card">
             <h3>Conversation</h3>
             <div class="log-box" id="logBox">
-                <div style="color:#555;text-align:center;padding:12px;">Connect and start talking...</div>
+                <div style="color:#a1a1aa;text-align:center;padding:12px;">Connect and start talking...</div>
             </div>
         </div>
 
@@ -430,8 +484,9 @@
         function addLog(role, text) {
             if (logBox.querySelector('div[style]')) logBox.innerHTML = '';
             const div = document.createElement('div');
-            div.className = 'log-entry';
-            div.innerHTML = `<span class="log-role">${role}</span><span class="log-text">${text}</span>`;
+            const roleClass = role === 'You' ? 'user' : 'agent';
+            div.className = `log-entry ${roleClass}`;
+            div.innerHTML = `<span class="log-role">${role}</span><div class="log-text">${text}</div>`;
             logBox.appendChild(div);
             logBox.scrollTop = logBox.scrollHeight;
         }
@@ -458,7 +513,6 @@
                         userTranscript.textContent = msg.text;
                         addLog('You', msg.text);
                     } else if (msg.type === 'response') {
-                        agentTranscript.textContent = msg.text;
                         addLog('Agent', msg.text);
                     } else if (msg.type === 'tts_start') {
                         isAgentSpeaking = true;
@@ -471,8 +525,6 @@
                         }
                     } else if (msg.type === 'reset_done') {
                         logBox.innerHTML = '<div style="color:#555;text-align:center;padding:12px;">Conversation reset.</div>';
-                        userTranscript.textContent = '';
-                        agentTranscript.textContent = '';
                     }
                 } else if (event.data instanceof ArrayBuffer) {
                     ttsChunks.push(new Int16Array(event.data));
