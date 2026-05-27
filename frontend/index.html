@@ -14,7 +14,7 @@
         .container { width: 420px; padding: 24px; }
         h1 { text-align: center; font-size: 1.3rem; margin-bottom: 24px; color: #fff; letter-spacing: -0.02em; }
 
-        /* ═══════════════════════════ AI Orb (UIVerse-inspired) ═══════════════════════════ */
+        /* ═══════════════════════════ AI Orb (Rainbow + Wave Ripple) ═══════════════════════════ */
         .orb-section {
             display: flex;
             flex-direction: column;
@@ -23,41 +23,153 @@
         }
         .orb-stage {
             position: relative;
-            width: 130px;
-            height: 130px;
+            width: 180px;
+            height: 180px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        /* Outer glow ring */
+        /* Wave ripples — expanding rings */
+        .orb-wave {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.25);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0;
+        }
+        .orb-stage.idle .orb-wave,
+        .orb-stage.listening .orb-wave,
+        .orb-stage.processing .orb-wave,
+        .orb-stage.speaking .orb-wave {
+            animation: waveRipple 2.4s ease-out infinite;
+        }
+        .orb-wave.w1 { animation-delay: 0s; }
+        .orb-wave.w2 { animation-delay: 0.6s; }
+        .orb-wave.w3 { animation-delay: 1.2s; }
+        .orb-wave.w4 { animation-delay: 1.8s; }
+        @keyframes waveRipple {
+            0%   { transform: scale(1); opacity: 0.6; border-width: 2.5px; }
+            100% { transform: scale(2.1); opacity: 0; border-width: 0.5px; }
+        }
+        /* listening: faster waves */
+        .orb-stage.listening .orb-wave { animation-duration: 1.4s; }
+        .orb-stage.listening .orb-wave.w2 { animation-delay: 0.35s; }
+        .orb-stage.listening .orb-wave.w3 { animation-delay: 0.7s; }
+        .orb-stage.listening .orb-wave.w4 { animation-delay: 1.05s; }
+        /* speaking: energetic waves */
+        .orb-stage.speaking .orb-wave { animation-duration: 1.0s; }
+        .orb-stage.speaking .orb-wave.w2 { animation-delay: 0.25s; }
+        .orb-stage.speaking .orb-wave.w3 { animation-delay: 0.5s; }
+        .orb-stage.speaking .orb-wave.w4 { animation-delay: 0.75s; }
+
+        /* Ambient glow behind orb */
         .orb-glow {
             position: absolute;
-            inset: 0;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
-            filter: blur(24px);
-            opacity: 0;
-            transition: background 0.5s, opacity 0.5s;
+            filter: blur(30px);
+            opacity: 0.15;
             z-index: 0;
+            background: rgba(139,92,246,0.6);
+            transition: opacity 0.5s;
         }
-        /* Main orb */
+        .orb-stage.listening .orb-glow { opacity: 0.3; background: rgba(99,102,241,0.7); }
+        .orb-stage.processing .orb-glow { opacity: 0.25; background: rgba(245,158,11,0.6); }
+        .orb-stage.speaking .orb-glow { opacity: 0.35; background: rgba(59,130,246,0.7); }
+
+        /* Main orb — rainbow gradient */
         .orb {
             width: 80px;
             height: 80px;
             border-radius: 50%;
             position: relative;
             z-index: 2;
-            cursor: default;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at 40% 35%, #3d3d5c, #1a1a2e 60%, #0d0d1a);
-            box-shadow: 0 0 30px rgba(90, 90, 150, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
-            transition: background 0.5s, box-shadow 0.5s, transform 0.3s;
+            background: conic-gradient(from 0deg,
+                #a78bfa, #818cf8, #6366f1, #3b82f6, #06b6d4, #22d3ee,
+                #34d399, #10b981, #84cc16, #a3e635, #facc15, #f59e0b,
+                #f97316, #ef4444, #f43f5e, #ec4899, #d946ef, #a855f7,
+                #a78bfa
+            );
+            box-shadow: 0 0 40px rgba(139,92,246,0.3), 0 0 80px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: filter 0.4s, transform 0.2s ease-out;
         }
-        /* Ball with gooey filter — the animated blob inside */
+        /* Hover: scale up */
+        .orb:hover {
+            transform: scale(1.08);
+        }
+        /* Active / hold: press down */
+        .orb:active {
+            transform: scale(0.94);
+            transition: transform 0.08s ease-in;
+        }
+        /* Muted state: desaturated */
+        .orb.muted {
+            filter: grayscale(0.55) brightness(0.65);
+            box-shadow: 0 0 20px rgba(120,120,150,0.2), 0 0 40px rgba(120,120,150,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+        .orb.muted:hover {
+            transform: scale(1.08);
+            filter: grayscale(0.35) brightness(0.75);
+        }
+        .orb.muted:active {
+            transform: scale(0.94);
+        }
+
+        /* State animation overrides on top of rainbow */
+        .orb-stage.idle .orb {
+            animation: rainbowSpin 8s linear infinite;
+        }
+        .orb-stage.listening .orb {
+            animation: rainbowSpin 3s linear infinite, orbListenPulse 0.7s ease-in-out infinite;
+            box-shadow: 0 0 55px rgba(99,102,241,0.5), 0 0 100px rgba(99,102,241,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+        .orb-stage.processing .orb {
+            animation: rainbowSpin 2s linear infinite, orbThinkBob 1s ease-in-out infinite;
+            box-shadow: 0 0 50px rgba(245,158,11,0.45), 0 0 90px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .orb-stage.speaking .orb {
+            animation: rainbowSpin 3.5s linear infinite, orbSpeakPulse 0.45s ease-in-out infinite;
+            box-shadow: 0 0 60px rgba(59,130,246,0.55), 0 0 110px rgba(59,130,246,0.25), inset 0 1px 0 rgba(255,255,255,0.14);
+        }
+        @keyframes rainbowSpin {
+            0% { background: conic-gradient(from 0deg,
+                #a78bfa, #818cf8, #6366f1, #3b82f6, #06b6d4, #22d3ee,
+                #34d399, #10b981, #84cc16, #a3e635, #facc15, #f59e0b,
+                #f97316, #ef4444, #f43f5e, #ec4899, #d946ef, #a855f7,
+                #a78bfa); }
+            100% { background: conic-gradient(from 360deg,
+                #a78bfa, #818cf8, #6366f1, #3b82f6, #06b6d4, #22d3ee,
+                #34d399, #10b981, #84cc16, #a3e635, #facc15, #f59e0b,
+                #f97316, #ef4444, #f43f5e, #ec4899, #d946ef, #a855f7,
+                #a78bfa); }
+        }
+        @keyframes orbListenPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+        @keyframes orbThinkBob {
+            0%, 100% { transform: scale(1); }
+            30% { transform: scale(1.04); }
+            60% { transform: scale(0.97); }
+        }
+        @keyframes orbSpeakPulse {
+            0%, 100% { transform: scale(1); }
+            35% { transform: scale(1.05); }
+            70% { transform: scale(0.98); }
+        }
+
+        /* Ball with gooey filter — animated blob inside orb */
         .orb-ball {
             position: absolute;
-            inset: 6px;
+            inset: 8px;
             border-radius: 50%;
             filter: url(#gooey);
             z-index: 0;
@@ -68,143 +180,61 @@
         /* Animated bars inside the ball */
         .orb-bar {
             position: absolute;
-            bottom: 25%;
-            width: 5px;
-            border-radius: 3px;
-            background: rgba(255,255,255,0.18);
+            bottom: 28%;
+            width: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.22);
             transition: background 0.4s;
         }
-        .orb-bar.b1 { height: 30%; left: 20%; animation: barDance 1.2s ease-in-out infinite; }
-        .orb-bar.b2 { height: 45%; left: 35%; animation: barDance 1.2s ease-in-out 0.15s infinite; }
-        .orb-bar.b3 { height: 55%; left: 50%; animation: barDance 1.2s ease-in-out 0.3s infinite; }
-        .orb-bar.b4 { height: 40%; left: 65%; animation: barDance 1.2s ease-in-out 0.45s infinite; }
-        .orb-bar.b5 { height: 25%; left: 80%; animation: barDance 1.2s ease-in-out 0.6s infinite; }
+        .orb-bar.b1 { height: 28%; left: 18%; animation: barDance 1s ease-in-out infinite; }
+        .orb-bar.b2 { height: 40%; left: 32%; animation: barDance 1s ease-in-out 0.12s infinite; }
+        .orb-bar.b3 { height: 50%; left: 47%; animation: barDance 1s ease-in-out 0.24s infinite; }
+        .orb-bar.b4 { height: 38%; left: 62%; animation: barDance 1s ease-in-out 0.36s infinite; }
+        .orb-bar.b5 { height: 24%; left: 77%; animation: barDance 1s ease-in-out 0.48s infinite; }
         @keyframes barDance {
-            0%, 100% { transform: scaleY(0.6); }
-            50% { transform: scaleY(1.4); }
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1.5); }
         }
-        /* Expanding rings inside the ball */
-        .orb-ring-inner {
-            position: absolute;
-            border-radius: 50%;
-            border: 1.5px solid rgba(255,255,255,0.1);
-            opacity: 0;
-            transition: border-color 0.4s;
-        }
+        .orb-stage.listening .orb-bar { background: rgba(255,255,255,0.4); animation-duration: 0.45s; }
+        .orb-stage.processing .orb-bar { background: rgba(255,255,255,0.3); animation-duration: 0.3s; }
+        .orb-stage.speaking .orb-bar { background: rgba(255,255,255,0.45); animation-duration: 0.25s; }
+
         /* Icon overlay */
         .orb-icon {
             position: relative;
             z-index: 3;
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255,255,255,0.5);
-            transition: color 0.4s, transform 0.3s;
+            color: rgba(255,255,255,0.75);
+            transition: color 0.35s, transform 0.2s;
+            pointer-events: none;
         }
         .orb-icon svg { width: 100%; height: 100%; }
-
-        /* ── Orb: idle ── */
-        .orb-stage.idle .orb {
-            animation: orbIdle 3.6s ease-in-out infinite;
-        }
-        .orb-stage.idle .orb-glow { background: rgba(100,100,160,0.6); opacity: 0.12; }
-        .orb-stage.idle .orb-bar { animation-play-state: running; animation-duration: 1.8s; }
-        @keyframes orbIdle {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(90,90,150,0.2), inset 0 1px 0 rgba(255,255,255,0.05); }
-            50% { transform: scale(1.03); box-shadow: 0 0 40px rgba(90,90,150,0.28), inset 0 1px 0 rgba(255,255,255,0.05); }
-        }
-
-        /* ── Orb: listening ── */
-        .orb-stage.listening .orb {
-            background: radial-gradient(circle at 40% 35%, #4ade80, #16a34a 55%, #14532d);
-            box-shadow: 0 0 45px rgba(34,197,94,0.4), 0 0 90px rgba(34,197,94,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
-            animation: orbListen 0.7s ease-in-out infinite;
-        }
-        .orb-stage.listening .orb-glow { background: #22c55e; opacity: 0.25; }
-        .orb-stage.listening .orb-icon { color: rgba(255,255,255,0.9); animation: iconPulse 0.7s ease-in-out infinite; }
-        .orb-stage.listening .orb-bar { background: rgba(255,255,255,0.35); animation-duration: 0.55s; }
-        .orb-stage.listening .orb-ring-inner {
-            animation: ringExpand 1.4s ease-out infinite;
-            border-color: rgba(255,255,255,0.25);
-        }
-        .orb-stage.listening .orb-ring-inner.ri2 { animation-delay: 0.45s; }
-        @keyframes orbListen {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.06); }
-        }
+        .orb.muted .orb-icon { color: #ef4444; }
+        .orb-stage.listening .orb-icon { color: #fff; animation: iconPulse 0.7s ease-in-out infinite; }
+        .orb-stage.processing .orb-icon { color: rgba(255,255,255,0.8); animation: iconSpin 2s linear infinite; }
+        .orb-stage.speaking .orb-icon { color: #fff; }
         @keyframes iconPulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.15); }
-        }
-        @keyframes ringExpand {
-            0% { width: 30%; height: 30%; opacity: 0.6; }
-            100% { width: 90%; height: 90%; opacity: 0; }
-        }
-
-        /* ── Orb: processing ── */
-        .orb-stage.processing .orb {
-            background: radial-gradient(circle at 40% 35%, #fbbf24, #d97706 55%, #78350f);
-            box-shadow: 0 0 40px rgba(245,158,11,0.4), 0 0 80px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
-            animation: orbThink 1s ease-in-out infinite;
-        }
-        .orb-stage.processing .orb-glow { background: #f59e0b; opacity: 0.22; }
-        .orb-stage.processing .orb-icon { color: rgba(255,255,255,0.7); animation: iconSpin 2s linear infinite; }
-        .orb-stage.processing .orb-bar { animation-duration: 0.35s; background: rgba(255,255,255,0.25); }
-        .orb-stage.processing .orb-ring-inner {
-            width: 55%; height: 55%;
-            border-color: rgba(255,255,255,0.2);
-            opacity: 0.5;
-            animation: ringBob 1.2s ease-in-out infinite;
-        }
-        .orb-stage.processing .orb-ring-inner.ri2 { animation-delay: 0.4s; width: 42%; height: 42%; }
-        @keyframes orbThink {
-            0%, 100% { transform: scale(1); }
-            30% { transform: scale(1.04); }
-            60% { transform: scale(0.97); }
+            50% { transform: scale(1.18); }
         }
         @keyframes iconSpin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-        @keyframes ringBob {
-            0%, 100% { transform: scale(1); opacity: 0.3; }
-            50% { transform: scale(1.15); opacity: 0.55; }
-        }
-
-        /* ── Orb: speaking ── */
-        .orb-stage.speaking .orb {
-            background: radial-gradient(circle at 40% 35%, #60a5fa, #2563eb 55%, #1e3a5f);
-            box-shadow: 0 0 50px rgba(59,130,246,0.5), 0 0 100px rgba(59,130,246,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
-            animation: orbSpeak 0.4s ease-in-out infinite;
-        }
-        .orb-stage.speaking .orb-glow { background: #3b82f6; opacity: 0.3; }
-        .orb-stage.speaking .orb-icon { color: rgba(255,255,255,0.9); }
-        .orb-stage.speaking .orb-bar { background: rgba(255,255,255,0.4); animation-duration: 0.3s; }
-        .orb-stage.speaking .orb-ring-inner {
-            animation: ringBreathe 0.8s ease-in-out infinite;
-            border-color: rgba(255,255,255,0.3);
-        }
-        .orb-stage.speaking .orb-ring-inner.ri2 { animation-delay: 0.3s; }
-        @keyframes orbSpeak {
-            0%, 100% { transform: scale(1); }
-            35% { transform: scale(1.05); }
-            70% { transform: scale(0.98); }
-        }
-        @keyframes ringBreathe {
-            0%, 100% { width: 38%; height: 38%; opacity: 0.3; }
-            50% { width: 60%; height: 60%; opacity: 0.6; }
         }
 
         /* Status label */
         .status-label {
             font-size: 0.8rem;
             color: #888;
-            margin-top: 12px;
+            margin-top: 10px;
             letter-spacing: 0.04em;
             transition: color 0.3s;
         }
+        .status-label.muted-label { color: #ef4444; }
 
         /* ═══════════════════════════ Buttons ═══════════════════════════ */
         .btn-row { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -223,80 +253,20 @@
         .btn-reset { background: #374151; color: #d1d5db; flex: 0.5; }
         .btn-reset:hover:not(:disabled) { background: #4b5563; }
 
-        /* ═══════════════════════════ Chat (UIVerse-inspired bubbles) ═══════════════════════════ */
-        .chat-section {
-            background: #1a1a24;
-            border-radius: 14px;
-            border: 1px solid #27272a;
-            overflow: hidden;
+        /* ═══════════════════════════ Cards (original layout) ═══════════════════════════ */
+        .card {
+            background: #1a1a24; border-radius: 12px; padding: 16px;
+            margin-bottom: 12px; border: 1px solid #27272a;
         }
-        .chat-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            border-bottom: 1px solid #27272a;
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #777;
-        }
-        .chat-header svg { width: 16px; height: 16px; color: #818cf8; flex-shrink: 0; }
-        .chat-messages {
-            max-height: 240px;
-            overflow-y: auto;
-            padding: 12px 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            min-height: 60px;
-        }
-        .chat-placeholder {
-            color: #555;
-            text-align: center;
-            padding: 20px 12px;
-            font-size: 0.82rem;
-        }
-        /* Message bubble */
-        .chat-msg {
-            display: flex;
-            flex-direction: column;
-            max-width: 88%;
-            animation: msgIn 0.35s ease-out;
-        }
-        .chat-msg.user { align-self: flex-end; align-items: flex-end; }
-        .chat-msg.agent { align-self: flex-start; align-items: flex-start; }
-        .chat-msg .msg-role {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 3px;
-            color: #666;
-        }
-        .chat-msg.user .msg-role { color: #6366f1; }
-        .chat-msg.agent .msg-role { color: #818cf8; }
-        .chat-msg .msg-bubble {
-            padding: 10px 14px;
-            border-radius: 14px;
-            font-size: 0.9rem;
-            line-height: 1.45;
-            word-wrap: break-word;
-        }
-        .chat-msg.user .msg-bubble {
-            background: #2d2d45;
-            color: #e0e0e0;
-            border-bottom-right-radius: 4px;
-        }
-        .chat-msg.agent .msg-bubble {
-            background: #1e1e32;
-            color: #e8e8ed;
-            border: 1px solid #2a2a3f;
-            border-bottom-left-radius: 4px;
-        }
-        @keyframes msgIn {
-            0% { opacity: 0; transform: translateY(8px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
+        .card h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #666; margin-bottom: 8px; }
+        .transcript-box { min-height: 48px; font-size: 1.05rem; color: #f1f5f9; word-wrap: break-word; }
+        .transcript-box.interim { color: #888; font-style: italic; }
+
+        .log-box { max-height: 200px; overflow-y: auto; font-size: 0.8rem; }
+        .log-entry { padding: 4px 0; border-bottom: 1px solid #222; display: flex; gap: 8px; }
+        .log-entry:last-child { border-bottom: none; }
+        .log-role { color: #818cf8; font-weight: 600; min-width: 42px; flex-shrink: 0; }
+        .log-text { color: #d1d5db; }
 
         .footer { text-align: center; font-size: 0.7rem; color: #555; margin-top: 16px; }
     </style>
@@ -316,20 +286,21 @@
         <!-- ── AI Orb ── -->
         <div class="orb-section">
             <div class="orb-stage" id="orbStage">
+                <div class="orb-wave w1"></div>
+                <div class="orb-wave w2"></div>
+                <div class="orb-wave w3"></div>
+                <div class="orb-wave w4"></div>
                 <div class="orb-glow"></div>
-                <div class="orb" id="orb">
+                <div class="orb" id="orb" onclick="toggleMic()" title="Click to mute/unmute">
                     <div class="orb-ball">
                         <div class="orb-bar b1"></div>
                         <div class="orb-bar b2"></div>
                         <div class="orb-bar b3"></div>
                         <div class="orb-bar b4"></div>
                         <div class="orb-bar b5"></div>
-                        <div class="orb-ring-inner ri1"></div>
-                        <div class="orb-ring-inner ri2"></div>
                     </div>
                     <div class="orb-icon">
-                        <!-- mic icon -->
-                        <svg id="orbIconMic" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                             <rect width="8" height="13" x="8" y="2" fill="currentColor" rx="4" />
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11a7 7 0 1 0 14 0m-7 10v-2" />
                         </svg>
@@ -342,25 +313,24 @@
         <!-- ── Controls ── -->
         <div class="btn-row">
             <button class="btn-connect" id="connectBtn" onclick="toggleConnection()">Connect</button>
-            <button class="btn-mute" id="muteBtn" onclick="toggleMic()" disabled>Mute</button>
             <button class="btn-reset" id="resetBtn" onclick="resetChat()" disabled>Reset</button>
         </div>
 
-        <!-- ── Conversation (UIVerse-style chat) ── -->
-        <div class="chat-section">
-            <div class="chat-header">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M20.5346 6.34625L20.3501 6.7707C20.3213 6.83981 20.2727 6.89885 20.2103 6.94038C20.148 6.98191 20.0748 7.00407 19.9999 7.00407C19.925 7.00407 19.8518 6.98191 19.7895 6.94038C19.7272 6.89885 19.6785 6.83981 19.6497 6.7707L19.4652 6.34625C19.1409 5.59538 18.5469 4.99334 17.8004 4.65894L17.2312 4.40472C17.1622 4.37296 17.1037 4.32206 17.0627 4.25806C17.0217 4.19406 16.9999 4.11965 16.9999 4.04364C16.9999 3.96763 17.0217 3.89322 17.0627 3.82922C17.1037 3.76522 17.1622 3.71432 17.2312 3.68256L17.7689 3.44334C18.5341 3.09941 19.1383 2.47511 19.457 1.69904L19.6475 1.24084C19.6753 1.16987 19.7239 1.10893 19.7869 1.06598C19.8499 1.02303 19.9244 1.00006 20.0007 1.00006C20.0769 1.00006 20.1514 1.02303 20.2144 1.06598C20.2774 1.10893 20.326 1.16987 20.3539 1.24084L20.5436 1.69829C20.8619 2.47451 21.4658 3.09908 22.2309 3.44334L22.7693 3.68331C22.8382 3.71516 22.8965 3.76605 22.9373 3.82997C22.9782 3.89389 22.9999 3.96816 22.9999 4.04402C22.9999 4.11987 22.9782 4.19414 22.9373 4.25806C22.8965 4.32198 22.8382 4.37287 22.7693 4.40472L22.1994 4.65819C21.4531 4.99293 20.8594 5.59523 20.5353 6.34625" fill="currentColor" />
-                    <path d="M3 14V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M21 14V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M16.5 18V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M12 22V2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M7.5 18V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                <span>Conversation</span>
-            </div>
-            <div class="chat-messages" id="chatMessages">
-                <div class="chat-placeholder">Connect and start talking...</div>
+        <!-- ── Conversation cards ── -->
+        <div class="card">
+            <h3>You said</h3>
+            <div class="transcript-box" id="userTranscript"></div>
+        </div>
+
+        <div class="card">
+            <h3>Agent says</h3>
+            <div class="transcript-box" id="agentTranscript"></div>
+        </div>
+
+        <div class="card">
+            <h3>Conversation</h3>
+            <div class="log-box" id="logBox">
+                <div style="color:#555;text-align:center;padding:12px;">Connect and start talking...</div>
             </div>
         </div>
 
@@ -373,9 +343,10 @@
         const orbStage = document.getElementById('orbStage');
         const statusLabel = document.getElementById('statusLabel');
         const connectBtn = document.getElementById('connectBtn');
-        const muteBtn = document.getElementById('muteBtn');
         const resetBtn = document.getElementById('resetBtn');
-        const chatMessages = document.getElementById('chatMessages');
+        const userTranscript = document.getElementById('userTranscript');
+        const agentTranscript = document.getElementById('agentTranscript');
+        const logBox = document.getElementById('logBox');
 
         // ── State ──
         let ws = null;
@@ -394,37 +365,31 @@
         let muted = false;
 
         function setStatus(state) {
-            orb.className = 'orb ' + state;
+            // Preserve muted class if present
+            if (muted) {
+                orb.className = 'orb muted ' + state;
+            } else {
+                orb.className = 'orb ' + state;
+            }
             orbStage.className = 'orb-stage ' + state;
-            const labels = {
-                idle: 'Ready',
-                listening: 'Listening...',
-                processing: 'Thinking...',
-                speaking: 'Speaking...',
-            };
-            statusLabel.textContent = labels[state] || state;
+            if (!muted) {
+                const labels = {
+                    idle: 'Ready',
+                    listening: 'Listening...',
+                    processing: 'Thinking...',
+                    speaking: 'Speaking...',
+                };
+                statusLabel.textContent = labels[state] || state;
+            }
         }
 
-        function addChatBubble(role, text) {
-            // Remove placeholder on first message
-            const ph = chatMessages.querySelector('.chat-placeholder');
-            if (ph) ph.remove();
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'chat-msg ' + (role === 'You' ? 'user' : 'agent');
-
-            const roleLabel = document.createElement('span');
-            roleLabel.className = 'msg-role';
-            roleLabel.textContent = role;
-
-            const bubble = document.createElement('div');
-            bubble.className = 'msg-bubble';
-            bubble.textContent = text;
-
-            wrapper.appendChild(roleLabel);
-            wrapper.appendChild(bubble);
-            chatMessages.appendChild(wrapper);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        function addLog(role, text) {
+            if (logBox.querySelector('div[style]')) logBox.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-role">${role}</span><span class="log-text">${text}</span>`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
         }
 
         // ── WebSocket ──
@@ -437,7 +402,6 @@
                 connected = true;
                 connectBtn.textContent = 'Disconnect';
                 connectBtn.classList.add('connected');
-                muteBtn.disabled = false;
                 resetBtn.disabled = false;
                 setStatus('idle');
                 startMic();
@@ -447,9 +411,11 @@
                 if (typeof event.data === 'string') {
                     const msg = JSON.parse(event.data);
                     if (msg.type === 'transcript') {
-                        addChatBubble('You', msg.text);
+                        userTranscript.textContent = msg.text;
+                        addLog('You', msg.text);
                     } else if (msg.type === 'response') {
-                        addChatBubble('Agent', msg.text);
+                        agentTranscript.textContent = msg.text;
+                        addLog('Agent', msg.text);
                     } else if (msg.type === 'tts_start') {
                         isAgentSpeaking = true;
                         ttsChunks = [];
@@ -462,7 +428,9 @@
                         isAgentSpeaking = false;
                         setStatus(listening ? 'listening' : 'idle');
                     } else if (msg.type === 'reset_done') {
-                        chatMessages.innerHTML = '<div class="chat-placeholder">Conversation reset.</div>';
+                        logBox.innerHTML = '<div style="color:#555;text-align:center;padding:12px;">Conversation reset.</div>';
+                        userTranscript.textContent = '';
+                        agentTranscript.textContent = '';
                     }
                 } else if (event.data instanceof ArrayBuffer) {
                     ttsChunks.push(new Int16Array(event.data));
@@ -474,10 +442,9 @@
                 stopMic();
                 connectBtn.textContent = 'Connect';
                 connectBtn.classList.remove('connected');
-                muteBtn.disabled = true;
-                muteBtn.textContent = 'Mute';
-                muteBtn.classList.remove('muted');
                 muted = false;
+                orb.classList.remove('muted');
+                statusLabel.classList.remove('muted-label');
                 resetBtn.disabled = true;
                 setStatus('idle');
                 ws = null;
@@ -589,12 +556,21 @@
 
         // ── Controls ──
         function toggleMic() {
+            if (!connected) return;
             muted = !muted;
             if (micStream) {
                 micStream.getAudioTracks().forEach(t => t.enabled = !muted);
             }
-            muteBtn.textContent = muted ? 'Unmute' : 'Mute';
-            muteBtn.classList.toggle('muted', muted);
+            if (muted) {
+                orb.classList.add('muted');
+                statusLabel.textContent = 'Muted';
+                statusLabel.classList.add('muted-label');
+            } else {
+                orb.classList.remove('muted');
+                statusLabel.classList.remove('muted-label');
+                // Restore status text
+                setStatus(listening ? 'listening' : (isAgentSpeaking ? 'speaking' : 'idle'));
+            }
         }
 
         function toggleConnection() {
